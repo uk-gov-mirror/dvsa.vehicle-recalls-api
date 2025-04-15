@@ -10,8 +10,6 @@ function getSmmtApiKey() {
   logger.debug({ context: { ciphertext: env.SMMT_API_KEY } }, 'Attempting to decrypt ciphertext.');
 
   return (
-    // The `.promise()` call might be on an JS SDK v2 client API.
-    // If yes, please remove .promise(). If not, remove this comment.
     decrypt({
       CiphertextBlob: Buffer.from(env.SMMT_API_KEY, 'base64'),
     })
