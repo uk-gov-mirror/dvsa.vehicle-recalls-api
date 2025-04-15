@@ -1,9 +1,7 @@
 const co = require('co');
-const AWS = require('../wrapper/awsSdkWrapper');
 const env = require('../wrapper/envVariablesWrapper');
 const config = require('./service');
-
-const kms = new AWS.KMS();
+const { decrypt } = require('@aws-sdk/client-kms');
 
 let logger;
 let smmtApiKey;
@@ -11,18 +9,22 @@ let smmtApiKey;
 function getSmmtApiKey() {
   logger.debug({ context: { ciphertext: env.SMMT_API_KEY } }, 'Attempting to decrypt ciphertext.');
 
-  return kms.decrypt({
-    CiphertextBlob: Buffer.from(env.SMMT_API_KEY, 'base64'),
-  }).promise()
-    .then((data) => {
-      logger.info('SMMT api key decrypted properly.');
-
-      return data.Plaintext.toString('ascii');
+  return (
+    // The `.promise()` call might be on an JS SDK v2 client API.
+    // If yes, please remove .promise(). If not, remove this comment.
+    decrypt({
+      CiphertextBlob: Buffer.from(env.SMMT_API_KEY, 'base64'),
     })
-    .catch((reason) => {
-      logger.error({ context: reason }, 'SMMT api key decryption failed.');
-      return undefined;
-    });
+      .then((data) => {
+        logger.info('SMMT api key decrypted properly.');
+
+        return data.Plaintext.toString('ascii');
+      })
+      .catch((reason) => {
+        logger.error({ context: reason }, 'SMMT api key decryption failed.');
+        return undefined;
+      })
+  );
 }
 
 exports.load = co.wrap(function* loadConfig(applicationLogger) {
